@@ -66,6 +66,12 @@ func processEvents(chanIsWowsRunning chan bool, chanTempArenaInfo chan *TempAren
 						LargeImage: "idle",
 						LargeText:  "Idle",
 						Timestamps: &client.Timestamps{Start: &now},
+						Buttons: []*client.Button{
+							{
+								Label: "WowsPresenceGo",
+								Url:   "https://github.com/imkindaprogrammermyself/WowsPresenceGo",
+							},
+						},
 					})
 				}
 			} else {
@@ -95,6 +101,12 @@ func processEvents(chanIsWowsRunning chan bool, chanTempArenaInfo chan *TempAren
 				Details:    fmt.Sprintf("on %v", mapName),
 				State:      fmt.Sprintf("Playing %v", vehicle),
 				Timestamps: &client.Timestamps{Start: &now, End: &end},
+				Buttons: []*client.Button{
+					{
+						Label: "WowsPresenceGo",
+						Url:   "https://github.com/imkindaprogrammermyself/WowsPresenceGo",
+					},
+				},
 			})
 		case isBattleEnded := <-chanIsBattleEnded:
 			if isBattleEnded {
@@ -107,6 +119,12 @@ func processEvents(chanIsWowsRunning chan bool, chanTempArenaInfo chan *TempAren
 				LargeImage: "idle",
 				LargeText:  "Idle",
 				Timestamps: &client.Timestamps{Start: &now},
+				Buttons: []*client.Button{
+					{
+						Label: "WowsPresenceGo",
+						Url:   "https://github.com/imkindaprogrammermyself/WowsPresenceGo",
+					},
+				},
 			})
 		}
 
@@ -160,7 +178,6 @@ func fileWatcher(watcher *fsnotify.Watcher, chanTempArenaInfo chan *TempArenaInf
 func processWatcher(procName string, delay time.Duration, isWowsRunning chan bool, watcher *fsnotify.Watcher) {
 	replaysDir := ""
 	isRemoved := false
-	
 
 	for {
 		processes, err := process.Processes()
@@ -198,7 +215,7 @@ func processWatcher(procName string, delay time.Duration, isWowsRunning chan boo
 			}
 		}
 
-		if replaysDir != "" && !isRemoved && !isRunning{
+		if replaysDir != "" && !isRemoved && !isRunning {
 			log.Printf("Process %v closed...\n", procName)
 			isWowsRunning <- false
 			watcherRemoveErr := watcher.Remove(replaysDir)
@@ -208,14 +225,14 @@ func processWatcher(procName string, delay time.Duration, isWowsRunning chan boo
 				isRemoved = true
 			}
 		}
-		
+
 		time.Sleep(delay)
 	}
 }
 
 func main() {
 	processName := "WorldOfWarships64.exe"
-	scanRate    := time.Second*1
+	scanRate := time.Second * 1
 
 	fmt.Println("*********************************")
 	fmt.Println("*** Welcome to WowsPresenceGo ***")
