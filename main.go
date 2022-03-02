@@ -66,12 +66,6 @@ func processEvents(chanIsWowsRunning chan bool, chanTempArenaInfo chan *TempAren
 						LargeImage: "idle",
 						LargeText:  "Idle",
 						Timestamps: &client.Timestamps{Start: &now},
-						Buttons: []*client.Button{
-							{
-								Label: "WowsPresenceGo",
-								Url:   "https://github.com/imkindaprogrammermyself/WowsPresenceGo",
-							},
-						},
 					})
 				}
 			} else {
@@ -101,12 +95,6 @@ func processEvents(chanIsWowsRunning chan bool, chanTempArenaInfo chan *TempAren
 				Details:    fmt.Sprintf("on %v", mapName),
 				State:      fmt.Sprintf("Playing %v", vehicle),
 				Timestamps: &client.Timestamps{Start: &now, End: &end},
-				Buttons: []*client.Button{
-					{
-						Label: "WowsPresenceGo",
-						Url:   "https://github.com/imkindaprogrammermyself/WowsPresenceGo",
-					},
-				},
 			})
 		case isBattleEnded := <-chanIsBattleEnded:
 			if isBattleEnded {
@@ -119,12 +107,6 @@ func processEvents(chanIsWowsRunning chan bool, chanTempArenaInfo chan *TempAren
 				LargeImage: "idle",
 				LargeText:  "Idle",
 				Timestamps: &client.Timestamps{Start: &now},
-				Buttons: []*client.Button{
-					{
-						Label: "WowsPresenceGo",
-						Url:   "https://github.com/imkindaprogrammermyself/WowsPresenceGo",
-					},
-				},
 			})
 		}
 
