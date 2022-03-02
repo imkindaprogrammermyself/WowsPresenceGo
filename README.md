@@ -3,8 +3,8 @@
 
 ![WOWSPRESENCEGO_TERM](https://i.imgur.com/7Ly6m26.png)
 ### How does it work?
-It reads the contents of `tempArenaInfo.json` file inside your WoWS replay directory and use that data to set your Discord's Rich Presence.  
-The file `tempArenaInfo.json` is created/modified when you if you enter a battle and automatically deleted by the game after the battle.  
+It reads the contents of `tempArenaInfo.json` file inside your WoWS replays directory and use that data to set your Discord's Rich Presence.  
+The file `tempArenaInfo.json` is created/modified when you enter a battle and automatically deleted by the game after the battle.  
 We leverage this behavior to detect the state of the client (in battle or not) instead of relying on mods to report the state.
 
 ### How to run it?
