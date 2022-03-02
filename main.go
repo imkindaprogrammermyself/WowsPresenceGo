@@ -113,12 +113,12 @@ func processEvents(chanIsWowsRunning chan bool, chanTempArenaInfo chan *TempAren
 	}
 }
 
-func fileWatcher(watcher *fsnotify.Watcher, chanTempArenaInfo chan *TempArenaInfo, chanIsBattleEnded chan bool) {
+func fileWatcher(filename string, watcher *fsnotify.Watcher, chanTempArenaInfo chan *TempArenaInfo, chanIsBattleEnded chan bool) {
 	for {
 		select {
 		case event := <-watcher.Events:
 			if event.Op&fsnotify.Write == fsnotify.Write {
-				if filepath.Base(event.Name) != "tempArenaInfo.json" {
+				if filepath.Base(event.Name) != filename {
 					continue
 				}
 
@@ -146,7 +146,7 @@ func fileWatcher(watcher *fsnotify.Watcher, chanTempArenaInfo chan *TempArenaInf
 
 				chanTempArenaInfo <- &tempArenaInfo
 			} else if event.Op&fsnotify.Remove == fsnotify.Remove {
-				if filepath.Base(event.Name) != "tempArenaInfo.json" {
+				if filepath.Base(event.Name) != filename {
 					continue
 				}
 				chanIsBattleEnded <- true
@@ -157,65 +157,47 @@ func fileWatcher(watcher *fsnotify.Watcher, chanTempArenaInfo chan *TempArenaInf
 	}
 }
 
-func processWatcher(procName string, delay time.Duration, isWowsRunning chan bool, watcher *fsnotify.Watcher) {
-	replaysDir := ""
-	isRemoved := false
-
-	for {
-		processes, err := process.Processes()
-		isRunning := false
-
-		if err != nil {
-			continue
-		}
-
-		for _, process := range processes {
-			processName, nameError := process.Name()
-			cwd, _ := process.Cwd()
-
-			if nameError != nil {
-				continue
-			}
-
-			if processName == procName {
-				if replaysDir == "" {
-					replaysDir = fmt.Sprintf("%vreplays\\", cwd)
-					isRemoved = false
-
-					log.Printf("Process %v found...\n", processName)
-					log.Printf("Setting replays directory to %v...\n", replaysDir)
-
-					watcherAddErr := watcher.Add(replaysDir)
-					if watcherAddErr != nil {
-						log.Fatalf("Error at adding %v to watch list...\n", replaysDir)
-					}
-					isWowsRunning <- true
-				}
-
-				isRunning = true
-				break
-			}
-		}
-
-		if replaysDir != "" && !isRemoved && !isRunning {
-			log.Printf("Process %v closed...\n", procName)
-			isWowsRunning <- false
-			watcherRemoveErr := watcher.Remove(replaysDir)
-
-			if watcherRemoveErr == nil {
-				replaysDir = ""
-				isRemoved = true
-			}
-		}
-
-		time.Sleep(delay)
+func isRunning(processName string) *process.Process {
+	processes, err := process.Processes()
+	if err != nil {
+		return nil
 	}
+	for _, process := range processes {
+		name, nameErr := process.Name()
+		if nameErr != nil {
+			return nil
+		}
+		if name == processName {
+			return process
+		}
+	}
+	return nil
+}
+
+func processWatcher(processName string, checkFrequency time.Duration) chan *process.Process {
+	chanProcess := make(chan *process.Process)
+	go func() {
+		isSent := false
+		for {
+			process := isRunning(processName)
+			if process != nil && !isSent {
+				isSent = true
+				chanProcess <- process
+			} else if process == nil && isSent {
+				isSent = false
+				chanProcess <- nil
+			}
+			time.Sleep(checkFrequency)
+		}
+	}()
+	return chanProcess
 }
 
 func main() {
 	processName := "WorldOfWarships64.exe"
+	fileToWatch := "tempArenaInfo.json"
 	scanRate := time.Second * 1
-
+	
 	fmt.Println("*********************************")
 	fmt.Println("*** Welcome to WowsPresenceGo ***")
 	fmt.Println("*********************************")
@@ -229,10 +211,37 @@ func main() {
 		log.Fatal(watcherError)
 	}
 	defer watcher.Close()
+	chanProcess := processWatcher(processName, scanRate)
 
-	go fileWatcher(watcher, chanTempArenaInfo, chanIsBattleEnded)
+	go func() {
+		replaysDir := ""
+		for p := range chanProcess {
+			if p != nil {
+				cwd, cwdError := p.Cwd()
+				if cwdError != nil {
+					continue
+				}
+				replaysDir := fmt.Sprintf("%vreplays\\", cwd)
+				watcherAddErr := watcher.Add(replaysDir)
+				if watcherAddErr != nil {
+					log.Fatalf("Error at adding %v to watch list...\n", replaysDir)
+				}
+				log.Printf("Process %v found...\n", processName)
+				log.Printf("Setting replays directory to %v...\n", replaysDir)
+				chanIsWowsRunning <- true
+			} else {
+				if replaysDir != "" {
+					replaysDir = ""
+					watcher.Remove(replaysDir)
+				}
+				log.Printf("Process %v closed...\n", processName)
+				chanIsWowsRunning <- false
+			}
+		}
+	}()
+
+	go fileWatcher(fileToWatch, watcher, chanTempArenaInfo, chanIsBattleEnded)
 	go processEvents(chanIsWowsRunning, chanTempArenaInfo, chanIsBattleEnded)
-	go processWatcher(processName, scanRate, chanIsWowsRunning, watcher)
 
 	log.Printf("Waiting for %v...\n", processName)
 	waitGroup.Wait()
